@@ -50,15 +50,15 @@ class DbInsertQueue(object):
     self._update = update
     return self
 
-  def queue(self, **kwargs):
+  def queue(self, row):
     if len(row) != self._numFields:
       raise DbInsertQueueException(u"Row field count mismatch: trying to queue " + unicode(len(row)) + u" values into " + unicode(self._numFields) + u" fields")
 
     new_row = []
     for idx,field in enumerate(self._fields):
-      if field not in kwargs:
+      if field not in row:
         raise DbInsertQueueException(u"Row field mismatch: " + unicode(field) + " not found in queued row")
-      new_row.append((idx, field))
+      new_row.append((idx, row[field]))
 
     new_row = [x[1] for x in sorted(new_row, key=lambda x: x[0])]
     self._rows.append(row)
