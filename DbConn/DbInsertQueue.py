@@ -10,6 +10,13 @@ class DbInsertQueue(object):
     self.db = dbConn
     self.table(table).fields(fields).clear().maxLength(maxLength).ignore(False).update(None)
 
+  def __len__(self):
+    return int(self._length)
+
+  def __iter__(self):
+    for x in self._rows:
+      yield x
+
   def clear(self):
     self._rows = []
     self._length = 0
@@ -51,5 +58,6 @@ class DbInsertQueue(object):
       if self._update:
         self.db.onDuplicateKeyUpdate(self._update)
       self.db.insert(ignore=self._ignore)
+      self.db.commit()
     self.clear()
     return self
