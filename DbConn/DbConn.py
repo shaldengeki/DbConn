@@ -182,7 +182,10 @@ class DbConn(object):
                      " ".join(["ORDER BY", str(self._order)]) if self._order else "", 
                      limitString])
 
-    searchQuery = " ".join(queryList)
+    try:
+      searchQuery = " ".join(queryList)
+    except Exception as e:
+      raise type(e)(e.message + ": " + str(queryList))
     return searchQuery
 
   def query(self, newCursor=False):
@@ -209,31 +212,31 @@ class DbConn(object):
     self.clearParams()
     return cursor
 
-  def update(self, newCursor=False):
+  def update(self, newCursor=False, commit=True):
     self._type = "UPDATE"
     cursor = self.query(newCursor=True)
-    if cursor:
+    if cursor and commit:
       self.commit()
     return cursor
 
-  def delete(self, newCursor=False):
+  def delete(self, newCursor=False, commit=True):
     self._type = "DELETE"
     cursor = self.query(newCursor=True)
-    if cursor:
+    if cursor and commit:
       self.commit()
     return cursor
 
-  def insert(self, ignore=False, newCursor=False):
+  def insert(self, ignore=False, newCursor=False, commit=True):
     self._type = "INSERT"
     cursor = self.query(newCursor=True)
-    if cursor:
+    if cursor and commit:
       self.commit()
     return cursor
 
-  def truncate(self, newCursor=False):
+  def truncate(self, newCursor=False, commit=True):
     self._type = "TRUNCATE"
     cursor = self.query(newCursor=True)
-    if cursor:
+    if cursor and commit:
       self.commit()
     return cursor
 
@@ -286,6 +289,10 @@ class DbConn(object):
 
   def commit(self):
     self.conn.commit()
+    return self
+
+  def rollback(self):
+    self.conn.rollback()
     return self
 
   def close(self):
