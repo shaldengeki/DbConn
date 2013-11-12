@@ -9,7 +9,7 @@ config = {
   'url': 'https://github.com/shaldengeki/DbConn', 
   'download_url': 'https://github.com/shaldengeki/DbConn', 
   'author_email': 'shaldengeki@gmail.com', 
-  'version': '0.1', 
+  'version': '0.2', 
   'install_requires': ['nose'], 
   'packages': ['DbConn'], 
   'scripts': [],

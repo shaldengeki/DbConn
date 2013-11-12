@@ -61,7 +61,7 @@ class DbInsertQueue(object):
       new_row.append((idx, row[field]))
 
     new_row = [x[1] for x in sorted(new_row, key=lambda x: x[0])]
-    self._rows.append(row)
+    self._rows.append(new_row)
     self._length += 1
     if self._length > self._maxLength:
       self.flush()
