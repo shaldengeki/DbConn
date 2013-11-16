@@ -72,6 +72,5 @@ class DbInsertQueue(object):
       if self._update:
         self.db.onDuplicateKeyUpdate(self._update)
       self.db.insert(ignore=self._ignore, newCursor=True)
-      self.db.commit()
     self.clear()
     return self
