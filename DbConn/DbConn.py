@@ -2,6 +2,7 @@
 import MySQLdb
 import MySQLdb.cursors 
 import _mysql_exceptions
+import sys
 import DbInsertQueue
 
 class DbConn(object):
@@ -197,18 +198,24 @@ class DbConn(object):
     elif self._limit is not None:
       self._params.append(int(self._limit))
     try:
-      if newCursor:
-        cursor = self.conn.cursor()
-      else:
+      try:
+        if newCursor:
+          cursor = self.conn.cursor()
+        else:
+          cursor = self.cursor
+        cursor.execute(self.queryString(), self._params)
+      except (AttributeError, MySQLdb.OperationalError):
+        # lost connection. reconnect and re-query.
+        if not self.connect():
+          print "Unable to reconnect to MySQL."
+          raise
         cursor = self.cursor
-      cursor.execute(self.queryString(), self._params)
-    except (AttributeError, MySQLdb.OperationalError):
-      # lost connection. reconnect and re-query.
-      if not self.connect():
-        print "Unable to reconnect to MySQL."
-        raise
-      cursor = self.cursor
-      cursor.execute(self.queryString(), self._params)
+        cursor.execute(self.queryString(), self._params)
+    except _mysql_exceptions.Error as e:
+      if self._table:
+        raise type(e), type(e)(e.message + '\nQuery: %s\nParams: %s' % (self.queryString(), unicode(self._params))), sys.exc_info()[2]
+      else:
+        raise type(e), type(e)(e.message), sys.exc_info()[2]
     self.clearParams()
     return cursor
 
