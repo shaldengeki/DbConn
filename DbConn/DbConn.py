@@ -305,6 +305,8 @@ class DbConn(object):
   def close(self):
     self.conn.close()
     self._conn = None
+    self.clearParams()
+    return self
 
   def insertQueue(self, table, fields, maxLength=1000):
     return DbInsertQueue.DbInsertQueue(self, table, fields, maxLength=maxLength)
