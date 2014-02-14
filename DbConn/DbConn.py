@@ -57,7 +57,7 @@ class DbConn(object):
 
   def connect(self):
     try:
-      self._conn = MySQLdb.connect('localhost', self.username, self.password, self.database, charset="utf8", use_unicode=True, cursorclass=MySQLdb.cursors.SSDictCursor)
+      self._conn = MySQLdb.connect('localhost', self.username, self.password, self.database, charset="utf8mb4", use_unicode=True, cursorclass=MySQLdb.cursors.SSDictCursor)
       self._cursor = None
     except MySQLdb.Error, e:
       print "Error connecting to MySQL database %d: %s to database: %s" % (e.args[0],e.args[1],self.database)
@@ -165,7 +165,10 @@ class DbConn(object):
     queryList.extend([self._table, " ".join(self._joins)])
 
     if self._type == "INSERT":
-      queryList.extend(["(" + ",".join(fields) + ")", "".join(["VALUES ", ",".join(self._values) if self._values else "()"])])
+      if self._values:
+        queryList.extend(["(" + ",".join(fields) + ")", "".join(["VALUES ", ",".join(self._values) if self._values else "()"])])
+      elif self._sets:
+        queryList.extend(["SET", ", ".join(self._sets)] if self._sets else "")
     elif self._type == "UPDATE":
       queryList.extend(["SET", ", ".join(self._sets)] if self._sets else "")
 
@@ -189,31 +192,35 @@ class DbConn(object):
       raise type(e)(e.message + ": " + str(queryList))
     return searchQuery
 
-  def query(self, newCursor=False):
-    if self._start is not None:
-      if self._limit is None:
-        self._params.extend([int(self._start), 18446744073709551615])
-      else:
-        self._params.extend([int(self._start), int(self._limit)])
-    elif self._limit is not None:
-      self._params.append(int(self._limit))
+  def query(self, query=None, newCursor=False):
+    # if no query is provided, generate one given the things already provided.
+    if query is None:
+      if self._start is not None:
+        if self._limit is None:
+          self._params.extend([int(self._start), 18446744073709551615])
+        else:
+          self._params.extend([int(self._start), int(self._limit)])
+      elif self._limit is not None:
+        self._params.append(int(self._limit))
+      query = self.queryString()
+    params = self._params
     try:
       try:
         if newCursor:
           cursor = self.conn.cursor()
         else:
           cursor = self.cursor
-        cursor.execute(self.queryString(), self._params)
+        cursor.execute(query, params)
       except (AttributeError, MySQLdb.OperationalError):
         # lost connection. reconnect and re-query.
         if not self.connect():
           print "Unable to reconnect to MySQL."
           raise
         cursor = self.cursor
-        cursor.execute(self.queryString(), self._params)
-    except _mysql_exceptions.Error as e:
+        cursor.execute(query, params)
+    except (_mysql_exceptions.Error, TypeError) as e:
       if self._table:
-        raise type(e), type(e)(unicode(e) + '\nQuery: %s\nParams: %s' % (self.queryString(), unicode(self._params))), sys.exc_info()[2]
+        raise type(e), type(e)(unicode(e) + '\nQuery: %s\nParams: %s' % (query, unicode(params))), sys.exc_info()[2]
       else:
         raise type(e), type(e)(unicode(e)), sys.exc_info()[2]
     self.clearParams()
@@ -235,6 +242,7 @@ class DbConn(object):
 
   def insert(self, ignore=False, newCursor=False, commit=True):
     self._type = "INSERT"
+    self._ignore = ignore
     cursor = self.query(newCursor=True)
     if cursor and commit:
       self.commit()
