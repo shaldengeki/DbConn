@@ -69,20 +69,24 @@ class DbInsertQueue(object):
   def flush(self):
     if self._rows:
       if self._beforeFlush is not None:
-        self._beforeFlush()
+        self._beforeFlush(self)
       self.db.table(self._table).fields(*self._fields).values(self._rows)
       if self._update:
         self.db.onDuplicateKeyUpdate(self._update)
       self.db.insert(ignore=self._ignore, newCursor=True)
       if self._afterFlush is not None:
-        self._afterFlush()
+        self._afterFlush(self)
     self.clear()
     return self
 
   def beforeFlush(self, fn):
+    """fn should take a DbInsertQueue object as first and only argument.
+    """
     self._beforeFlush = fn
     return self
 
   def afterFlush(self, fn):
+    """fn should take a DbInsertQueue object as first and only argument.
+    """
     self._afterFlush = fn
     return self
